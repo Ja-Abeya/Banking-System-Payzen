@@ -1,0 +1,229 @@
+pip install tk
+import tkinter as tk
+from tkinter import messagebox, simpledialog
+
+class User:
+    def __init__(self, username, password, initial_balance=0, preferred_currency='USD'):
+        self.username = username
+        self.password = password
+        self.balance = initial_balance
+        self.preferred_currency = preferred_currency
+
+class Account:
+    def __init__(self):
+        self.users = {'admin': User('admin', 'adminpass', 50000.0)}
+        self.current_user = None
+
+    def login(self, username, password):
+        if username in self.users and self.users[username].password == password:
+            self.current_user = username
+            # Ask for the choice of currency during login
+            currency_choice = simpledialog.askstring("Currency Choice", "Choose your preferred currency:")
+            if currency_choice:
+                self.users[username].preferred_currency = currency_choice
+            messagebox.showinfo("Login Successful", f"Welcome, {username}! Preferred Currency: {self.users[username].preferred_currency}")
+        else:
+            messagebox.showerror("Login Failed", "Invalid username or password. Please try again.")
+
+    def logout(self):
+        if self.current_user:
+            messagebox.showinfo("Logout Successful", f"Goodbye, {self.current_user}!")
+            self.current_user = None
+        else:
+            messagebox.showwarning("Logout Warning", "No user is currently logged in.")
+
+    def deposit(self, amount, currency):
+        if self.current_user:
+            user = self.users[self.current_user]
+            user.balance += amount
+            user.preferred_currency = currency
+            messagebox.showinfo("Deposit Successful", f"Deposited {amount} {currency}. New balance: {user.balance} {currency}")
+        else:
+            messagebox.showwarning("Deposit Warning", "Please log in first.")
+
+    def check_balance(self):
+        if self.current_user:
+            user = self.users[self.current_user]
+            messagebox.showinfo("Balance Check", f"Current balance: {user.balance} {user.preferred_currency}")
+        else:
+            messagebox.showwarning("Balance Check Warning", "Please log in first.")
+
+    def transfer(self, recipient_name, recipient_account, amount, currency):
+        if self.current_user:
+            sender = self.users[self.current_user]
+            recipient = f"{recipient_name} ({recipient_account})"
+            if recipient_account != sender.username:  # Ensure not transferring to oneself
+                if recipient in self.users:
+                    recipient_user = self.users[recipient]
+                    if sender.balance >= amount:
+                        sender.balance -= amount
+                        recipient_user.balance += amount
+                        messagebox.showinfo("Transfer Successful", f"Transferred {amount} {currency} to {recipient}.")
+                        self.check_balance()  # Recalculate balance
+                    else:
+                        messagebox.showerror("Insufficient Funds", "Insufficient funds.")
+                else:
+                    messagebox.showerror("Recipient Not Found", f"Recipient {recipient} not found.")
+            else:
+                messagebox.showerror("Self-Transfer", "You cannot transfer to yourself.")
+        else:
+            messagebox.showwarning("Transfer Warning", "Please log in first.")
+
+    def withdraw(self, amount, currency):
+        if self.current_user:
+            user = self.users[self.current_user]
+            if user.balance >= amount:
+                user.balance -= amount
+                messagebox.showinfo("Withdrawal Successful", f"Withdrew {amount} {currency}. New balance: {user.balance} {currency}")
+                self.check_balance()  # Recalculate balance
+            else:
+                messagebox.showerror("Insufficient Funds", "Insufficient funds.")
+        else:
+            messagebox.showwarning("Withdrawal Warning", "Please log in first.")
+
+    def choose_currency(self, currency):
+        if self.current_user:
+            user = self.users[self.current_user]
+            user.preferred_currency = currency
+            messagebox.showinfo("Currency Selection", f"Preferred currency set to {currency}.")
+        else:
+            messagebox.showwarning("Currency Selection Warning", "Please log in first.")
+
+class BankApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("PayZen - Online Banking System")
+
+        # Colors
+        background_color = "#333333"
+        button_color = "#4CAF50"
+        button_text_color = "white"
+        label_color = "white"
+
+        self.bank = Account()
+
+        # GUI elements
+        self.label_welcome = tk.Label(
+            root, text="Welcome to PayZen - Your Online Payment Solution", font=("Wide Latin", 16, "bold"), bg=background_color, fg=label_color)
+        self.label_username = tk.Label(
+            root, text="Username:", font=("Wide Latin", 12), bg=background_color, fg=label_color)
+        self.label_password = tk.Label(
+            root, text="Password:", font=("Wide Latin", 12), bg=background_color, fg=label_color)
+        self.entry_username = tk.Entry(root, font=("Wide Latin", 12))
+        self.entry_password = tk.Entry(root, show="*", font=("Wide Latin", 12))
+
+        self.button_login = tk.Button(root, text="Login", font=(
+            "Wide Latin", 12, "bold"), command=self.login, bg=button_color, fg=button_text_color)
+        self.button_deposit = tk.Button(root, text="Deposit", font=(
+            "Wide Latin", 12, "bold"), command=self.deposit, bg=button_color, fg=button_text_color)
+        self.button_check_balance = tk.Button(
+            root, text="Check Balance", font=("Wide Latin", 12, "bold"), command=self.check_balance, bg=button_color, fg=button_text_color)
+        self.button_transfer = tk.Button(
+            root, text="Transfer", font=("Wide Latin", 12, "bold"), command=self.transfer, bg=button_color, fg=button_text_color)
+        self.button_withdraw = tk.Button(
+            root, text="Withdraw", font=("Wide Latin", 12, "bold"), command=self.withdraw, bg=button_color, fg=button_text_color)
+        self.button_logout = tk.Button(
+            root, text="Logout", font=("Wide Latin", 12, "bold"), command=self.logout, bg=button_color, fg=button_text_color)
+
+        # PZ logo
+        self.label_logo = tk.Label(root, text="PZ", font=("Wide Latin", 32, "bold"), bg=background_color, fg=label_color)
+
+        # Grid layout
+        self.label_welcome.grid(row=0, column=0, columnspan=2, pady=10)
+        self.label_username.grid(row=1, column=0, pady=5)
+        self.label_password.grid(row=2, column=0, pady=5)
+        self.entry_username.grid(row=1, column=1, pady=5)
+        self.entry_password.grid(row=2, column=1, pady=5)
+        self.button_login.grid(row=3, column=0, columnspan=2, pady=10)
+        self.label_logo.grid(row=0, column=2, rowspan=4, padx=10)
+
+    def login(self):
+        username = self.entry_username.get()
+        password = self.entry_password.get()
+        self.bank.login(username, password)
+
+        if self.bank.current_user:
+            # Remove login elements
+            self.label_welcome.grid_remove()
+            self.label_username.grid_remove()
+            self.label_password.grid_remove()
+            self.entry_username.grid_remove()
+            self.entry_password.grid_remove()
+            self.button_login.grid_remove()
+            self.label_logo.grid_remove()
+
+            # Display other functions after successful login
+            self.button_deposit.grid(row=4, column=0, columnspan=2, pady=10)
+            self.button_check_balance.grid(row=5, column=0, columnspan=2, pady=10)
+            self.button_transfer.grid(row=6, column=0, columnspan=2, pady=10)
+            self.button_withdraw.grid(row=7, column=0, columnspan=2, pady=10)
+            self.button_logout.grid(row=8, column=1, pady=10, sticky=tk.E)
+
+    def deposit(self):
+        amount = float(simpledialog.askstring("Deposit", "Enter the amount to deposit:"))
+        currency = simpledialog.askstring(
+            "Deposit", "Enter the currency (e.g., USD, EUR):")
+        self.bank.deposit(amount, currency)
+
+    def check_balance(self):
+        self.bank.check_balance()
+
+    def transfer(self):
+        recipient_name = simpledialog.askstring(
+            "Transfer", "Enter the recipient's name:")
+        recipient_account = simpledialog.askstring(
+            "Transfer", "Enter the recipient's account:")
+        amount = float(
+            simpledialog.askstring("Transfer", "Enter the amount to transfer:"))
+        currency = simpledialog.askstring(
+            "Transfer", "Enter the currency (e.g., USD, EUR):")
+        self.bank.transfer(recipient_name, recipient_account, amount, currency)
+
+    def withdraw(self):
+        amount = float(
+            simpledialog.askstring("Withdraw", "Enter the amount to withdraw:"))
+        currency = simpledialog.askstring(
+            "Withdraw", "Enter the currency (e.g., USD, EUR):")
+        self.bank.withdraw(amount, currency)
+
+    def logout(self):
+        # Remove other functions after logout
+        self.button_deposit.grid_remove()
+        self.button_check_balance.grid_remove()
+        self.button_transfer.grid_remove()
+        self.button_withdraw.grid_remove()
+        self.button_logout.grid_remove()
+
+        # Display thank you page after logout
+        self.label_welcome.grid(row=0, column=0, columnspan=2, pady=10)
+        self.label_welcome.config(text="Thank you for using PayZen!", font=("Wide Latin", 16, "bold"))
+        self.root.after(2000, self.reset_welcome)
+
+    def reset_welcome(self):
+        # Reset welcome message after a delay
+        self.label_welcome.config(text="Welcome to PayZen - Your Online Payment Solution")
+        # Display login elements after logout
+        self.label_username.grid(row=1, column=0, pady=5)
+        self.label_password.grid(row=2, column=0, pady=5)
+        self.entry_username.grid(row=1, column=1, pady=5)
+        self.entry_password.grid(row=2, column=1, pady=5)
+        self.button_login.grid(row=3, column=0, columnspan=2, pady=10)
+        self.label_logo.grid(row=0, column=2, rowspan=4, padx=10)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = BankApp(root)
+
+    # Center the window on the screen
+    window_width = 800
+    window_height = 500
+    screen_width = root.winfo_screenwidth()
+    screen_height = root.winfo_screenheight()
+
+    x_coordinate = (screen_width / 2) - (window_width / 2)
+    y_coordinate = (screen_height / 2) - (window_height / 2)
+
+    root.geometry(f"{window_width}x{window_height}+{int(x_coordinate)}+{int(y_coordinate)}")
+
+    root.configure(bg="#333333")  # Set background color
+    root.mainloop()
